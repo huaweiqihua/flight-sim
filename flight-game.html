@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✈️ 飞越天际 - 飞行模拟</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(180deg, #87CEEB 0%, #98E4FF 50%, #B8D4E8 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Noto Sans SC', 'Orbitron', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 900px;
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 100px rgba(135,206,235,0.3);
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 40, 80, 0.9);
+            z-index: 20;
+            transition: opacity 0.5s;
+        }
+        
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        h1 {
+            font-size: 52px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 30px rgba(135,206,235,0.8), 0 4px 0 #1a3a5c;
+            margin-bottom: 10px;
+            letter-spacing: 4px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            color: #87CEEB;
+            margin-bottom: 30px;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 8px;
+        }
+        
+        .btn {
+            padding: 18px 60px;
+            font-size: 20px;
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(180deg, #00BFFF, #0080FF);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 8px 30px rgba(0,191,255,0.5), inset 0 2px 0 rgba(255,255,255,0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,191,255,0.6);
+        }
+        
+        .instructions {
+            color: #aaa;
+            margin-top: 30px;
+            font-size: 14px;
+            text-align: center;
+            line-height: 2;
+        }
+        
+        .key {
+            display: inline-block;
+            padding: 5px 15px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            margin: 0 5px;
+            border: 1px solid rgba(255,255,255,0.3);
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* HUD Elements */
+        .hud {
+            position: absolute;
+            pointer-events: none;
+            color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+        
+        .hud-left {
+            top: 20px;
+            left: 20px;
+        }
+        
+        .hud-right {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        
+        .hud-bottom {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        
+        .gauge {
+            background: rgba(0,0,0,0.6);
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 10px;
+            border: 2px solid rgba(135,206,235,0.5);
+        }
+        
+        .gauge-label {
+            font-size: 11px;
+            color: #87CEEB;
+            margin-bottom: 5px;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+        
+        .gauge-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .gauge-unit {
+            font-size: 12px;
+            color: #aaa;
+            margin-left: 5px;
+        }
+        
+        .progress-bar {
+            width: 300px;
+            height: 20px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid rgba(135,206,235,0.5);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00BFFF, #00FF80);
+            border-radius: 8px;
+            transition: width 0.3s;
+        }
+        
+        .progress-label {
+            font-size: 12px;
+            color: #87CEEB;
+            margin-bottom: 8px;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+        
+        #title-display {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            letter-spacing: 3px;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 700;
+            color: #FFD700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.8);
+            opacity: 0;
+            transition: opacity 0.5s;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        .show-message {
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="900" height="500"></canvas>
+        
+        <div id="title-display">✈️ 飞越天际 BEYOND THE HORIZON</div>
+        
+        <div id="startScreen">
+            <h1>✈️ 飞越天际</h1>
+            <h2>BEYOND THE HORIZON</h2>
+            <button class="btn" onclick="startGame()">开始飞行</button>
+            <div class="instructions">
+                <span class="key">↑</span> <span class="key">↓</span> 控制仰角 (俯仰)<br>
+                <span class="key">←</span> <span class="key">→</span> 控制方向 (转向)<br>
+                <span class="key">W</span> <span class="key">S</span> 控制油门<br><br>
+                从起飞到巡航再到降落，<br>完成完整的飞行旅程！
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="hidden">
+            <h1>飞行结束</h1>
+            <h2 id="resultText">成功降落！</h2>
+            <div class="gauge">
+                <div class="gauge-label">飞行用时</div>
+                <div class="gauge-value" id="finalTime">0:00</div>
+            </div>
+            <button class="btn" onclick="startGame()">再次起飞</button>
+        </div>
+        
+        <div class="hud hud-left" id="hudLeft" style="display:none;">
+            <div class="gauge">
+                <div class="gauge-label">油门 THROTTLE</div>
+                <div class="gauge-value"><span id="throttle">0</span><span class="gauge-unit">%</span></div>
+            </div>
+            <div class="gauge">
+                <div class="gauge-label">仰角 PITCH</div>
+                <div class="gauge-value"><span id="pitch">0</span><span class="gauge-unit">°</span></div>
+            </div>
+        </div>
+        
+        <div class="hud hud-right" id="hudRight" style="display:none;">
+            <div class="gauge">
+                <div class="gauge-label">空速 AIRSPEED</div>
+                <div class="gauge-value"><span id="airspeed">0</span><span class="gauge-unit">kn</span></div>
+            </div>
+            <div class="gauge">
+                <div class="gauge-label">高度 ALTITUDE</div>
+                <div class="gauge-value"><span id="altitude">0</span><span class="gauge-unit">M</span></div>
+            </div>
+        </div>
+        
+        <div class="hud hud-bottom" id="hudBottom" style="display:none;">
+            <div class="progress-label" id="phaseLabel">起飞阶段</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game state
+        let gameRunning = false;
+        let gameTime = 0;
+        let lastTime = 0;
+        
+        // Flight phases: 0=taxi, 1=takeoff, 2=climb, 3=cruise, 4=descent, 5=landing, 6=rollout
+        let flightPhase = 0;
+        
+        // Aircraft state
+        const plane = {
+            x: 100,
+            y: 420,
+            vx: 0,
+            vy: 0,
+            speed: 0,
+            altitude: 0,
+            pitch: 0,      // 仰角 -15 to +25
+            heading: 0,    // 航向
+            throttle: 0,   // 油门 0-100
+            roll: 0        // 横滚角度
+        };
+        
+        // Environment
+        let clouds = [];
+        let terrain = [];
+        let sun = { x: 750, y: 60 };
+        
+        // Input
+        const keys = {};
+        document.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+            if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
+        });
+        document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+        
+        // Initialize environment
+        function initWorld() {
+            // Clouds
+            clouds = [];
+            for(let i = 0; i < 12; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width * 2,
+                    y: 50 + Math.random() * 200,
+                    size: 40 + Math.random() * 60,
+                    speed: 0.2 + Math.random() * 0.5
+                });
+            }
+            
+            // Ground/terrain
+            terrain = [];
+            for(let x = 0; x < canvas.width + 100; x += 10) {
+                const y = 450 + Math.sin(x * 0.02) * 20 + Math.random() * 10;
+                terrain.push({ x, y });
+            }
+        }
+        
+        // Draw sky gradient
+        function drawSky() {
+            let gradient;
+            if (flightPhase >= 4) {
+                // 降落阶段 - 夕阳
+                gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#FF6B35');
+                gradient.addColorStop(0.4, '#F7C59F');
+                gradient.addColorStop(0.7, '#EFEFD0');
+                gradient.addColorStop(1, '#87CEEB');
+            } else {
+                // 白天
+                gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#4A90D9');
+                gradient.addColorStop(0.5, '#87CEEB');
+                gradient.addColorStop(1, '#B8D4E8');
+            }
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Sun
+            if(flightPhase < 4) {
+                const sunGradient = ctx.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, 50);
+                sunGradient.addColorStop(0, '#FFF9C4');
+                sunGradient.addColorStop(0.3, '#FFEB3B');
+                sunGradient.addColorStop(1, 'rgba(255,235,59,0)');
+                ctx.fillStyle = sunGradient;
+                ctx.beginPath();
+                ctx.arc(sun.x, sun.y, 50, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Draw clouds
+        function drawClouds() {
+            clouds.forEach(cloud => {
+                cloud.x -= plane.speed * 0.5 + cloud.speed;
+                if(cloud.x < -100) cloud.x = canvas.width + 100;
+                
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.4, cloud.y - cloud.size * 0.2, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.8, cloud.y, cloud.size * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // Draw ground/runway
+        function drawGround() {
+            // Ground
+            const groundY = 450 - plane.altitude * 0.05;
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            
+            // Runway (only visible at low altitude)
+            if(plane.altitude < 100) {
+                const runwayX = 150 - (plane.x % 800);
+                ctx.fillStyle = '#555';
+                ctx.fillRect(runwayX, groundY + 5, 200, 30);
+                
+                // Runway markings
+                ctx.fillStyle = '#FFF';
+                for(let i = 0; i < 5; i++) {
+                    ctx.fillRect(runwayX + 20 + i * 35, groundY + 15, 20, 4);
+                }
+            }
+        }
+        
+        // Draw airplane
+        function drawPlane() {
+            const screenX = 150;
+            const screenY = canvas.height / 2 - plane.altitude * 0.3;
+            
+            ctx.save();
+            ctx.translate(screenX, Math.min(screenY, canvas.height - 100));
+            ctx.rotate(plane.roll * Math.PI / 180);
+            ctx.rotate(plane.pitch * Math.PI / 180);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(0, 30, 40, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Fuselage
+            const fuselageGrad = ctx.createLinearGradient(-50, 0, 50, 0);
+            fuselageGrad.addColorStop(0, '#B0BEC5');
+            fuselageGrad.addColorStop(0.5, '#ECEFF1');
+            fuselageGrad.addColorStop(1, '#B0BEC5');
+            ctx.fillStyle = fuselageGrad;
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 60, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cockpit
+            ctx.fillStyle = '#81D4FA';
+            ctx.beginPath();
+            ctx.ellipse(25, -3, 15, 8, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Wings
+            ctx.fillStyle = '#90A4AE';
+            // Left wing
+            ctx.beginPath();
+            ctx.moveTo(-10, 5);
+            ctx.lineTo(-50, 25);
+            ctx.lineTo(-45, 30);
+            ctx.lineTo(-10, 15);
+            ctx.closePath();
+            ctx.fill();
+            // Right wing
+            ctx.beginPath();
+            ctx.moveTo(-10, -5);
+            ctx.lineTo(-50, -25);
+            ctx.lineTo(-45, -30);
+            ctx.lineTo(-10, -15);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Tail
+            ctx.fillStyle = '#78909C';
+            ctx.beginPath();
+            ctx.moveTo(-55, 0);
+            ctx.lineTo(-70, -20);
+            ctx.lineTo(-60, -20);
+            ctx.lineTo(-55, 0);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Propeller
+            if(plane.throttle > 0) {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                const propAngle = Date.now() * 0.05 * (plane.throttle / 50);
+                ctx.beginPath();
+                ctx.moveTo(60, -20 * Math.cos(propAngle));
+                ctx.lineTo(60, 20 * Math.cos(propAngle));
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(60 + 20 * Math.sin(propAngle), 0);
+                ctx.lineTo(60 - 20 * Math.sin(propAngle), 0);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
+        // Update flight physics
+        function updateFlight(dt) {
+            gameTime += dt;
+            
+            // Input handling
+            if(keys['w'] || keys['arrowup']) plane.throttle = Math.min(100, plane.throttle + 30 * dt);
+            if(keys['s'] || keys['arrowdown']) plane.throttle = Math.max(0, plane.throttle - 30 * dt);
+            
+            if(keys['arrowleft']) plane.heading = Math.max(-30, plane.heading - 20 * dt);
+            if(keys['arrowright']) plane.heading = Math.min(30, plane.heading + 20 * dt);
+            
+            if(keys['arrowup']) plane.pitch = Math.min(25, plane.pitch + 15 * dt);
+            if(keys['arrowdown']) plane.pitch = Math.max(-15, plane.pitch - 15 * dt);
+            
+            // Auto leveling
+            if(!keys['arrowup'] && !keys['arrowdown']) {
+                plane.pitch *= 0.95;
+            }
+            if(!keys['arrowleft'] && !keys['arrowright']) {
+                plane.heading *= 0.95;
+            }
+            
+            // Physics
+            plane.roll = plane.heading * 2;
+            const thrust = plane.throttle * 0.15;
+            
+            // Speed based on throttle and pitch
+            const targetSpeed = thrust * 3 + plane.pitch * 2;
+            plane.speed += (targetSpeed - plane.speed) * 0.5 * dt;
+            plane.speed = Math.max(0, plane.speed);
+            
+            // Altitude
+            plane.altitude += (plane.pitch * 2 + plane.throttle * 0.3) * dt * 10;
+            plane.altitude = Math.max(0, plane.altitude);
+            
+            // Forward motion
+            plane.x += plane.speed * dt * 20;
+            
+            // Phase management
+            updatePhase();
+            
+            // Update HUD
+            updateHUD();
+        }
+        
+        // Flight phase logic
+        function updatePhase() {
+            const progress = plane.x / 2000; // Total flight distance ~2000
+            
+            if(plane.altitude < 5 && plane.speed < 20) {
+                flightPhase = 0; // Taxi
+                document.getElementById('phaseLabel').textContent = '滑行阶段 - 按W加速';
+            } else if(plane.altitude < 50 && plane.speed > 20) {
+                flightPhase = 1; // Takeoff
+                document.getElementById('phaseLabel').textContent = '起飞阶段 - 拉起机头';
+            } else if(plane.altitude < 200) {
+                flightPhase = 2; // Climb
+                document.getElementById('phaseLabel').textContent = '爬升阶段 - 保持仰角';
+            } else if(plane.altitude >= 200 && plane.altitude < 800) {
+                flightPhase = 3; // Cruise
+                document.getElementById('phaseLabel').textContent = '巡航阶段 - 欣赏风景';
+            } else if(plane.altitude >= 800 && plane.altitude > 200) {
+                flightPhase = 4; // Descent
+                document.getElementById('phaseLabel').textContent = '下降阶段 - 减小油门';
+            } else if(plane.altitude <= 100 && plane.speed > 50) {
+                flightPhase = 5; // Landing approach
+                document.getElementById('phaseLabel').textContent = '进近阶段 - 对准跑道';
+            } else if(plane.altitude < 20 && plane.speed < 30) {
+                flightPhase = 6; // Rollout
+                document.getElementById('phaseLabel').textContent = '降落滑行';
+            }
+            
+            // Update progress bar
+            const progressPct = Math.min(100, progress * 100);
+            document.getElementById('progressBar').style.width = progressPct + '%';
+            
+            // Show messages
+            if(flightPhase === 1 && plane.altitude > 30) {
+                showMessage('起飞成功！✈️');
+            } else if(flightPhase === 3 && plane.altitude > 300) {
+                showMessage('到达巡航高度 🌤️');
+            } else if(flightPhase === 4) {
+                showMessage('开始下降 🛬');
+            } else if(flightPhase === 6 && plane.speed < 10) {
+                gameOver(true);
+            }
+            
+            // Speed check for landing
+            if(flightPhase === 5 && plane.speed > 80) {
+                showMessage('速度太快！减速 �刹车');
+            }
+        }
+        
+        function showMessage(text) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.classList.add('show-message');
+            setTimeout(() => msg.classList.remove('show-message'), 2000);
+        }
+        
+        function updateHUD() {
+            document.getElementById('throttle').textContent = Math.round(plane.throttle);
+            document.getElementById('pitch').textContent = Math.round(plane.pitch);
+            document.getElementById('airspeed').textContent = Math.round(plane.speed * 2);
+            document.getElementById('altitude').textContent = Math.round(plane.altitude);
+        }
+        
+        // Game loop
+        function gameLoop(timestamp) {
+            if(!gameRunning) return;
+            
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+            
+            // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw
+            drawSky();
+            drawClouds();
+            drawGround();
+            drawPlane();
+            
+            // Update
+            updateFlight(dt);
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start game
+        function startGame() {
+            gameRunning = true;
+            gameTime = 0;
+            flightPhase = 0;
+            
+            plane.x = 100;
+            plane.y = 420;
+            plane.speed = 0;
+            plane.altitude = 0;
+            plane.pitch = 0;
+            plane.heading = 0;
+            plane.throttle = 0;
+            plane.roll = 0;
+            
+            initWorld();
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hudLeft').style.display = 'block';
+            document.getElementById('hudRight').style.display = 'block';
+            document.getElementById('hudBottom').style.display = 'block';
+            
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Game over
+        function gameOver(success) {
+            gameRunning = false;
+            
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = Math.floor(gameTime % 60);
+            document.getElementById('finalTime').textContent = `${minutes}:${seconds.toString().padStart(2,'0')}`;
+            document.getElementById('resultText').textContent = success ? '成功降落！🛬' : '坠毁...💥';
+            
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        // Initial render
+        initWorld();
+        drawSky();
+        drawClouds();
+        drawGround();
+        drawPlane();
+    </script>
+</body>
+</html>
